@@ -1,0 +1,142 @@
+# Docs:
+# https://aka.ms/yaml
+
+trigger:
+  batch: true
+  branches:
+    include:
+    - master
+    
+variables:
+  terraformVersion: 0.12.20
+  agentPool: 'ubuntu-18.04'
+
+stages:
+  - stage: Plan_phase
+    displayName: "Terraform Plan"
+    jobs:
+      - template: pipeline-templates/terraform-plan.yaml
+        parameters:
+          zone: 'sandbox'
+          build: $(Build.BuildNumber)
+          agentPool: ${{ variables.agentPool }}
+          terraformVersion: ${{ variables.terraformVersion }}
+          
+      - template: pipeline-templates/terraform-plan.yaml
+        parameters:
+          zone: 'preview'
+          build: $(Build.BuildNumber)
+          agentPool: ${{ variables.agentPool }}
+          terraformVersion: ${{ variables.terraformVersion }}
+          
+      - template: pipeline-templates/terraform-plan.yaml
+        parameters:
+          zone: 'ithc'
+          build: $(Build.BuildNumber)
+          agentPool: ${{ variables.agentPool }}
+          terraformVersion: ${{ variables.terraformVersion }}
+
+      - template: pipeline-templates/terraform-plan.yaml
+        parameters:
+          zone: 'perftest'
+          build: $(Build.BuildNumber)
+          agentPool: ${{ variables.agentPool }}
+          terraformVersion: ${{ variables.terraformVersion }}
+
+      - template: pipeline-templates/terraform-plan.yaml
+        parameters:
+          zone: 'aat'
+          build: $(Build.BuildNumber)
+          agentPool: ${{ variables.agentPool }}
+          terraformVersion: ${{ variables.terraformVersion }}
+
+      - template: pipeline-templates/terraform-plan.yaml
+        parameters:
+          zone: 'prod'
+          build: $(Build.BuildNumber)
+          agentPool: ${{ variables.agentPool }}
+          terraformVersion: ${{ variables.terraformVersion }}
+              
+      - job: Archive
+        pool:
+          vmImage: ${{ variables.agentPool }}
+        steps:
+          - task: CopyFiles@2
+            displayName: 'Copy Files to: $(Build.ArtifactStagingDirectory)'
+            inputs:
+              TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Artifact: drop'
+
+  - stage: Sandbox_Apply
+    dependsOn: Plan_phase
+    displayName: "Sandbox Apply"
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    jobs:
+      - template: pipeline-templates/terraform-apply.yaml
+        parameters:
+          zone: 'sandbox'
+          build: $(Build.BuildNumber)
+          agentPool: ${{ variables.agentPool }}
+          terraformVersion: ${{ variables.terraformVersion }}
+
+  - stage: Preview_Apply
+    dependsOn: Plan_phase
+    displayName: "Preview Apply"
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    jobs:
+      - template: pipeline-templates/terraform-apply.yaml
+        parameters:
+          zone: 'preview'
+          build: $(Build.BuildNumber)
+          agentPool: ${{ variables.agentPool }}
+          terraformVersion: ${{ variables.terraformVersion }}
+
+  - stage: Ithc_Apply
+    dependsOn: Plan_phase
+    displayName: "Ithc Apply"
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    jobs:
+      - template: pipeline-templates/terraform-apply.yaml
+        parameters:
+          zone: 'ithc'
+          build: $(Build.BuildNumber)
+          agentPool: ${{ variables.agentPool }}
+          terraformVersion: ${{ variables.terraformVersion }}
+
+  - stage: Perftest_Apply
+    dependsOn: Plan_phase
+    displayName: "Perftest Apply"
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    jobs:
+      - template: pipeline-templates/terraform-apply.yaml
+        parameters:
+          zone: 'perftest'
+          build: $(Build.BuildNumber)
+          agentPool: ${{ variables.agentPool }}
+          terraformVersion: ${{ variables.terraformVersion }}
+
+  - stage: Aat_Apply
+    dependsOn: Plan_phase
+    displayName: "AAT Apply"
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    jobs:
+      - template: pipeline-templates/terraform-apply.yaml
+        parameters:
+          zone: 'aat'
+          build: $(Build.BuildNumber)
+          agentPool: ${{ variables.agentPool }}
+          terraformVersion: ${{ variables.terraformVersion }}
+
+  - stage: Prod_Apply
+    dependsOn: Plan_phase
+    displayName: "Prod Apply"
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+    jobs:
+      - template: pipeline-templates/terraform-apply.yaml
+        parameters:
+          zone: 'prod'
+          build: $(Build.BuildNumber)
+          agentPool: ${{ variables.agentPool }}
+          terraformVersion: ${{ variables.terraformVersion }}
